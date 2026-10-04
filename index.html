@@ -163,9 +163,9 @@
     .btn-color-4 { background-color: #805ad5; } /* 駐車割引 */
     .btn-color-5 { background-color: #d69e2e; } /* ポイント */
     .btn-color-6 { background-color: #319795; } /* 電子マネー */
-    .btn-color-7 { background-color: #e53e3e; } /* クリア */
-    .btn-color-8 { background-color: #718096; } /* 設定 */
-    .btn-color-9 { background-color: #2b6cb0; } /* 予備 */
+    .btn-color-7 { background-color: #e53e3e; } /* 取消 */
+    .btn-color-8 { background-color: #718096; } /* その他 */
+    .btn-color-9 { background-color: #2b6cb0; } /* 会計 */
 
     /* 汎用入力スタイル */
     .form-group {
@@ -324,10 +324,10 @@
         <span class="icon">📶</span>電子マネー
       </button>
       <button class="grid-btn btn-color-7" onclick="playSound()">
-        <span class="icon">🔄</span>クリア
+        <span class="icon">🔄</span>取消
       </button>
-      <button class="grid-btn btn-color-8" onclick="openSettingsModal()">
-        <span class="icon">⚙️</span>端末設定
+      <button class="grid-btn btn-color-8" onclick="alert('その他機能')">
+        <span class="icon">📋</span>その他
       </button>
       <button class="grid-btn btn-color-9" onclick="alert('会計完了')">
         <span class="icon">✅</span>会計完了
@@ -612,4 +612,4 @@
 </script>
 
 </body>
-</html>
+            </html>
