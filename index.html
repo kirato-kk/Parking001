@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>卓上決済端末</title>
+  <!-- jsQRライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
     :root {
@@ -235,7 +236,7 @@
       object-fit: cover;
     }
 
-    /* 右下のファイルフォルダ（📁）ボタン */
+    /* 右下の📁（ファイルフォルダ）ボタン */
     .file-upload-btn {
       position: absolute;
       bottom: 12px;
@@ -616,5 +617,4 @@
       return;
     }
     currentStoreName = val;
-    document.getElementById('main-store-disp').innerText = currentStoreName;
-    documen
+    document.getElementById('main-store-disp').innerText = currentS
