@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>多機能卓上決済端末</title>
+  <title>卓上決済端末</title>
+  <!-- jsQRライブラリ（カメラでQRコードを読み取る用） -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
     :root {
       --bg-color: #f5f7fa;
@@ -36,12 +38,11 @@
       padding: 8px;
     }
 
-    /* 1画面に収まるよう縦横・幅を最適化 */
     .terminal-frame {
       width: 100%;
-      max-width: 480px;
+      max-width: 420px;
       height: 94vh;
-      max-height: 850px;
+      max-height: 800px;
       background-color: var(--card-bg);
       border-radius: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -52,117 +53,74 @@
       position: relative;
     }
 
-    /* 上部ステータスバー */
+    /* 上部ステータスバー（右上に歯車⚙️のみ） */
     .status-bar {
-      height: 38px;
+      height: 44px;
       background-color: #edf2f7;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 14px;
+      padding: 0 16px;
       border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
     .time-display {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: 700;
-    }
-
-    .status-right {
-      display: flex;
-      gap: 8px;
-      align-items: center;
     }
 
     .icon-btn {
       background: none;
       border: none;
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       cursor: pointer;
-      padding: 2px;
+      padding: 4px;
     }
 
-    /* メインボディ */
-    .main-body {
+    /* 各画面コンテナ */
+    .screen {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 12px;
-      overflow: hidden;
+      gap: 12px;
+      padding: 16px;
+      overflow-y: auto;
     }
 
+    .hidden { display: none !important; }
+
+    /* 1. 店舗名入力画面（初期画面） */
+    .login-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .login-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      color: var(--primary-blue);
+    }
+
+    /* 店舗名バー */
     .store-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: #f7fafc;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 8px 14px;
+      border-radius: 10px;
       border: 1px solid var(--border-color);
-      font-size: 0.75rem;
-      color: var(--text-sub);
-      flex-shrink: 0;
-    }
-
-    .store-bar strong {
-      color: var(--text-main);
-    }
-
-    /* 金額表示エリア */
-    .display-card {
-      background: #ebf8ff;
-      border: 2px solid #bee3f8;
-      border-radius: 12px;
-      padding: 10px 14px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
-    .display-label {
-      font-size: 0.7rem;
-      color: #2b6cb0;
-      font-weight: 600;
-    }
-
-    .display-value {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #2b6cb0;
-      font-family: monospace;
-      line-height: 1.2;
-    }
-
-    /* 入力フォーム */
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .form-group label {
-      font-size: 0.7rem;
-      color: var(--text-sub);
-      font-weight: 600;
-    }
-
-    .form-group input {
-      background: #f7fafc;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 8px;
-      border-radius: 8px;
       font-size: 0.85rem;
-      outline: none;
+      color: var(--text-sub);
+      flex-shrink: 0;
     }
+
+    .store-bar strong { color: var(--text-main); }
 
     /* 9つの角丸ボタン（グリッド配置） */
     .grid-buttons {
@@ -170,22 +128,22 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      gap: 8px;
+      gap: 10px;
       min-height: 0;
     }
 
     .grid-btn {
-      border-radius: 12px;
+      border-radius: 14px;
       border: none;
       color: #ffffff;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
       transition: transform 0.1s, opacity 0.1s;
       padding: 4px;
@@ -196,43 +154,75 @@
       opacity: 0.9;
     }
 
-    .grid-btn span.icon {
-      font-size: 1.1rem;
-    }
+    .grid-btn span.icon { font-size: 1.3rem; }
 
-    /* ボタンの色 */
+    /* ボタン配色 */
     .btn-color-1 { background-color: #3182ce; } /* クレジット */
     .btn-color-2 { background-color: #38a169; } /* manaca */
     .btn-color-3 { background-color: #dd6b20; } /* QR/PayPay */
     .btn-color-4 { background-color: #805ad5; } /* 駐車割引 */
-    .btn-color-5 { background-color: #d69e2e; } /* ポイント付与 */
-    .btn-color-6 { background-color: #319795; } /* 履歴表示 */
+    .btn-color-5 { background-color: #d69e2e; } /* ポイント */
+    .btn-color-6 { background-color: #319795; } /* 電子マネー */
     .btn-color-7 { background-color: #e53e3e; } /* クリア */
-    .btn-color-8 { background-color: #4a5568; } /* 設定 */
-    .btn-color-9 { background-color: #2b6cb0; font-size: 0.85rem; } /* 会計完了 */
+    .btn-color-8 { background-color: #718096; } /* 設定 */
+    .btn-color-9 { background-color: #2b6cb0; } /* 予備 */
 
-    /* ポップアップモーダル（履歴・設定用） */
+    /* 汎用入力スタイル */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .form-group input {
+      background: #f7fafc;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .action-btn {
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary-blue);
+      color: #fff;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* ポップアップモーダル */
     .modal-backdrop {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 20;
+      z-index: 50;
     }
 
     .modal-box {
       background: #ffffff;
       width: 90%;
       max-width: 380px;
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 20px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      max-height: 80vh;
+      max-height: 85vh;
       overflow-y: auto;
     }
 
@@ -241,180 +231,196 @@
       justify-content: space-between;
       align-items: center;
       font-weight: bold;
-      font-size: 1rem;
+      font-size: 1.05rem;
     }
 
     .modal-close {
-      background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-sub);
+      background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-sub);
     }
 
-    /* モーダル内レシートスタイル */
-    .receipt-container {
-      background: #fcfcfc;
-      border: 1px dashed var(--border-color);
-      border-radius: 10px;
-      padding: 12px;
-      font-family: monospace;
-      font-size: 0.8rem;
+    /* QRコードカメラ用エリア */
+    #camera-container {
+      width: 100%;
+      height: 220px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* NFCタッチ待機アニメーション */
+    .touch-wave-box {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 12px;
     }
 
-    .receipt-header {
-      text-align: center;
-      font-weight: bold;
-      border-bottom: 1px dashed #cbd5e0;
-      padding-bottom: 6px;
+    .touch-icon {
+      font-size: 3.5rem;
+      animation: pulse 1.5s infinite;
     }
 
-    .receipt-row {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .receipt-line {
-      border-top: 1px dashed #cbd5e0;
-      margin: 2px 0;
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.8; }
     }
   </style>
 </head>
 <body>
 
 <div class="terminal-frame">
-  <!-- 上部ステータスバー -->
+  <!-- 上部ステータスバー（右上に⚙️のみ） -->
   <div class="status-bar">
     <div class="time-display" id="clock-display">18:00</div>
-    <div class="status-right">
-      <span style="font-size:0.75rem; color:#4a5568;" id="nfc-status">📱 manaca待機</span>
-      <button class="icon-btn" onclick="openSettings()" title="設定">⚙️</button>
+    <button class="icon-btn" onclick="openSettingsModal()" title="設定">⚙️</button>
+  </div>
+
+  <!-- 【画面A】一番始めの画面：店舗入力画面（ログイン画面） -->
+  <div class="screen" id="screen-login">
+    <div class="login-container">
+      <div class="login-title">🏪 卓上決済端末 初期設定</div>
+      <div class="form-group">
+        <label>店舗名を入力してください</label>
+        <input type="text" id="login-store-name" value="mozoワンダーシティ店" placeholder="例: ○○店">
+      </div>
+      <button class="action-btn" onclick="submitLogin()">店舗を登録して起動</button>
     </div>
   </div>
 
-  <div class="main-body">
+  <!-- 【画面B】メイン画面：9個の角丸ボタンのみ（金額等の表示なし） -->
+  <div class="screen hidden" id="screen-main">
     <div class="store-bar">
-      <span>店舗: <strong id="store-name-disp">mozoワンダーシティ店</strong></span>
+      <span>店舗: <strong id="main-store-disp">-</strong></span>
       <span>レジ: <strong>01</strong></span>
     </div>
 
-    <!-- 金額表示エリア -->
-    <div class="display-card">
-      <div class="display-label">お支払合計金額</div>
-      <div class="display-value" id="amount-disp">¥3,500</div>
-    </div>
-
-    <!-- 入力項目 -->
-    <div class="form-row">
-      <div class="form-group">
-        <label>購入金額 (円)</label>
-        <input type="number" id="input-amount" value="3500" oninput="syncAmount()">
-      </div>
-      <div class="form-group">
-        <label>車両ナンバー</label>
-        <input type="text" id="input-parking" value="Parking_1234">
-      </div>
-    </div>
-
-    <!-- 9つの角丸カラーボタン（画面内に収まるレスポンシブ） -->
     <div class="grid-buttons">
-      <button class="grid-btn btn-color-1" onclick="selectPayment('クレジットカード')">
+      <button class="grid-btn btn-color-1" onclick="alert('クレジットカード決済を選択しました')">
         <span class="icon">💳</span>クレカ
       </button>
-      <button class="grid-btn btn-color-2" onclick="selectPayment('manaca / 交通系IC')">
-        <span class="icon">電</span>manaca
+      <button class="grid-btn btn-color-2" onclick="startManacaFlow()">
+        <span class="icon">電</span>マナカ
       </button>
-      <button class="grid-btn btn-color-3" onclick="selectPayment('PayPay / QR')">
+      <button class="grid-btn btn-color-3" onclick="alert('コード決済を選択しました')">
         <span class="icon">📱</span>コード決済
       </button>
-      <button class="grid-btn btn-color-4" onclick="processParkingOnly()">
-        <span class="icon">🚗</span>駐車割引
+      <button class="grid-btn btn-color-4" onclick="startParkingFlow()">
+        <span class="icon">🚗</span>駐車場割引
       </button>
-      <button class="grid-btn btn-color-5" onclick="selectPayment('ポイント付与')">
+      <button class="grid-btn btn-color-5" onclick="alert('ポイント処理を選択しました')">
         <span class="icon">🎁</span>ポイント
       </button>
-      <button class="grid-btn btn-color-6" onclick="openReceipt()">
-        <span class="icon">📄</span>取引履歴
+      <button class="grid-btn btn-color-6" onclick="alert('電子マネーを選択しました')">
+        <span class="icon">📶</span>電子マネー
       </button>
-      <button class="grid-btn btn-color-7" onclick="resetForm()">
+      <button class="grid-btn btn-color-7" onclick="playSound()">
         <span class="icon">🔄</span>クリア
       </button>
-      <button class="grid-btn btn-color-8" onclick="openSettings()">
-        <span class="icon">⚙️</span>設定
+      <button class="grid-btn btn-color-8" onclick="openSettingsModal()">
+        <span class="icon">⚙️</span>端末設定
       </button>
-      <button class="grid-btn btn-color-9" onclick="processTransaction()">
+      <button class="grid-btn btn-color-9" onclick="alert('会計完了')">
         <span class="icon">✅</span>会計完了
       </button>
     </div>
   </div>
 
-  <!-- 取引履歴（レシート）ポップアップモーダル -->
-  <div class="modal-backdrop" id="receipt-modal">
+  <!-- 【モーダル1】駐車場割引フロー -->
+  <div class="modal-backdrop" id="modal-parking">
     <div class="modal-box">
       <div class="modal-header">
-        <span>📄 最新の取引履歴</span>
-        <button class="modal-close" onclick="closeReceipt()">✕</button>
+        <span>🚗 駐車場割引</span>
+        <button class="modal-close" onclick="closeParkingModal()">✕</button>
       </div>
-      <div class="receipt-container">
-        <div class="receipt-header">
-          <div id="rec-store">mozoワンダーシティ店</div>
-          <div style="font-size:0.7rem; font-weight:normal; color:#718096;">卓上決済端末 お控え</div>
-        </div>
-        <div class="receipt-row">
-          <span>取引日時:</span>
-          <span id="rec-date">未処理</span>
-        </div>
-        <div class="receipt-line"></div>
-        <div class="receipt-row" style="font-weight:bold; font-size:0.9rem;">
-          <span>お買上額:</span>
-          <span id="rec-amount">¥0</span>
-        </div>
-        <div class="receipt-row">
-          <span>決済方式:</span>
-          <span id="rec-method">-</span>
-        </div>
-        <div class="receipt-line"></div>
-        <div class="receipt-row">
-          <span>付与ポイント:</span>
-          <span id="rec-points">0 pt</span>
-        </div>
-        <div class="receipt-line"></div>
-        <div style="font-weight:bold; margin-top:2px;">【駐車場サービス】</div>
-        <div class="receipt-row">
-          <span>車番:</span>
-          <span id="rec-car">-</span>
-        </div>
-        <div class="receipt-row">
-          <span>割引適用:</span>
-          <span id="rec-discount">-</span>
+
+      <!-- ステップ1: カメラ起動＆QRコードスキャン -->
+      <div id="parking-step-1">
+        <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:8px;">Parking_1234のQRコードをかざしてください</p>
+        <div id="camera-container">
+          <video id="video" playsinline></video>
         </div>
       </div>
-      <button class="grid-btn btn-color-1" style="height:38px; width:100%; border-radius:8px;" onclick="closeReceipt()">閉じる</button>
+
+      <!-- ステップ2: 車両ナンバー確認 & 金額入力 -->
+      <div id="parking-step-2" class="hidden">
+        <div class="form-group">
+          <label>お車ナンバー</label>
+          <input type="text" id="parking-car-no" readonly style="background:#edf2f7; font-weight:bold; color:#2b6cb0;">
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label>お会計金額 (円)</label>
+          <input type="number" id="parking-amount" value="3500" placeholder="金額を入力">
+        </div>
+        <button class="action-btn" style="background:var(--accent-purple); margin-top:10px;" onclick="completeParkingDiscount()">割引適用完了</button>
+      </div>
     </div>
   </div>
 
-  <!-- 設定モーダル -->
-  <div class="modal-backdrop" id="settings-modal">
+  <!-- 【モーダル2】マナカ決済フロー -->
+  <div class="modal-backdrop" id="modal-manaca">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>💳 マナカお支払い</span>
+        <button class="modal-close" onclick="closeManacaModal()">✕</button>
+      </div>
+
+      <!-- ステップ1: 金額入力 -->
+      <div id="manaca-step-1">
+        <div class="form-group">
+          <label>お会計金額を入力してください (円)</label>
+          <input type="number" id="manaca-amount" value="3500" placeholder="金額を入力">
+        </div>
+        <button class="action-btn" style="background:var(--accent-green); margin-top:12px;" onclick="goToManacaTouch()">次へ（タッチ待機）</button>
+      </div>
+
+      <!-- ステップ2: 背面タッチ待機 -->
+      <div id="manaca-step-2" class="hidden">
+        <div class="touch-wave-box">
+          <div class="touch-icon">📱</div>
+          <p style="font-weight:bold; font-size:1rem;">スマホの背面にタッチして下さい</p>
+          <p style="font-size:0.8rem; color:var(--text-sub);" id="nfc-guide-text">manacaを端末裏面にかざしてください...</p>
+        </div>
+        <button class="action-btn" style="background:var(--border-color); color:var(--text-main);" onclick="simulateNFCSuccess()">画面タッチでテスト反応</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 【モーダル3】設定モーダル（ログアウト対応） -->
+  <div class="modal-backdrop" id="modal-settings">
     <div class="modal-box">
       <div class="modal-header">
         <span>⚙️ 端末設定</span>
-        <button class="modal-close" onclick="closeSettings()">✕</button>
+        <button class="modal-close" onclick="closeSettingsModal()">✕</button>
       </div>
       <div class="form-group">
         <label>店舗名</label>
-        <input type="text" id="setting-store-input" value="mozoワンダーシティ店">
+        <input type="text" id="setting-store-input">
       </div>
-      <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
-        <button class="grid-btn btn-color-1" style="height:40px; width:100%; border-radius:8px;" onclick="saveSettings()">設定を保存</button>
-        <button class="grid-btn btn-color-7" style="height:40px; width:100%; border-radius:8px;" onclick="logout()">ログアウト</button>
-      </div>
+      <button class="action-btn" onclick="saveStoreSettings()">設定を保存</button>
+      <button class="action-btn" style="background:var(--accent-red);" onclick="logout()">ログアウト（ログイン画面へ）</button>
     </div>
   </div>
 </div>
 
-<script>
-  let selectedMethod = 'manaca / 交通系IC';
+<!-- 隠しキャンバス（QRコード解析用） -->
+<canvas id="qr-canvas" style="display:none;"></canvas>
 
-  // 効果音（ピピッ）
+<script>
+  let currentStoreName = "";
+  let videoStream = null;
+  let qrAnimationId = null;
+
+  // 効果音（ピピッ！）
   function playSound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -430,7 +436,7 @@
     } catch(e){}
   }
 
-  // 時計
+  // 時計更新
   function updateClock() {
     const now = new Date();
     document.getElementById('clock-display').innerText = 
@@ -439,98 +445,170 @@
   setInterval(updateClock, 1000);
   updateClock();
 
-  function syncAmount() {
-    const val = Number(document.getElementById('input-amount').value) || 0;
-    document.getElementById('amount-disp').innerText = '¥' + val.toLocaleString();
+  // 1. 店舗入力・ログイン処理
+  function submitLogin() {
+    const val = document.getElementById('login-store-name').value.trim();
+    if(!val) {
+      alert('店舗名を入力してください');
+      return;
+    }
+    currentStoreName = val;
+    document.getElementById('main-store-disp').innerText = currentStoreName;
+    document.getElementById('setting-store-input').value = currentStoreName;
+
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('screen-main').classList.remove('hidden');
   }
 
-  function selectPayment(name) {
+  // 2. 駐車場割引フロー
+  function startParkingFlow() {
+    document.getElementById('parking-step-1').classList.remove('hidden');
+    document.getElementById('parking-step-2').classList.add('hidden');
+    document.getElementById('modal-parking').style.display = 'flex';
+
+    // カメラ起動
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then((stream) => {
+        videoStream = stream;
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+        video.play();
+        requestAnimationFrame(scanQRCode);
+      })
+      .catch((err) => {
+        alert("カメラの起動に失敗しました: " + err);
+      });
+  }
+
+  // QRコードのリアルタイム検出
+  function scanQRCode() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('qr-canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data) {
+        // 例: "Parking_1234" から "1234" を抽出
+        const match = code.data.match(/^Parking_(\d{1,4})$/i);
+        if (match) {
+          playSound();
+          stopCamera();
+          document.getElementById('parking-car-no').value = match[1];
+          document.getElementById('parking-step-1').classList.add('hidden');
+          document.getElementById('parking-step-2').classList.remove('hidden');
+          return;
+        }
+      }
+    }
+    qrAnimationId = requestAnimationFrame(scanQRCode);
+  }
+
+  function stopCamera() {
+    if (qrAnimationId) cancelAnimationFrame(qrAnimationId);
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
+  }
+
+  function completeParkingDiscount() {
     playSound();
-    selectedMethod = name;
-    alert(`決済種別: 【${name}】 を選択しました`);
+    const carNo = document.getElementById('parking-car-no').value;
+    const amount = document.getElementById('parking-amount').value;
+    closeParkingModal();
+    alert(`【割引適用完了】\nお車ナンバー: ${carNo}\nお会計金額: ¥${Number(amount).toLocaleString()}`);
   }
 
-  function calcParking(input, amount) {
-    const match = input.match(/^Parking_(\d{1,4})$/i);
-    if (!match) return { car: '-', hours: 0 };
-    const car = match[1];
-    let hours = 0;
-    if (amount >= 5000) hours = 3;
-    else if (amount >= 3000) hours = 2;
-    else if (amount >= 1000) hours = 1;
-    return { car, hours };
+  function closeParkingModal() {
+    stopCamera();
+    document.getElementById('modal-parking').style.display = 'none';
   }
 
-  // 会計完了
-  function processTransaction() {
-    playSound();
-    const amount = Number(document.getElementById('input-amount').value) || 0;
-    const parkingInput = document.getElementById('input-parking').value;
-    const points = Math.floor(amount * 0.01);
-    const parking = calcParking(parkingInput, amount);
-
-    const now = new Date();
-    document.getElementById('rec-date').innerText = now.toLocaleString('ja-JP');
-    document.getElementById('rec-amount').innerText = '¥' + amount.toLocaleString();
-    document.getElementById('rec-method').innerText = selectedMethod;
-    document.getElementById('rec-points').innerText = points + ' pt';
-    document.getElementById('rec-car').innerText = parking.car;
-    document.getElementById('rec-discount').innerText = parking.hours > 0 ? `${parking.hours}時間無料` : 'なし';
-
-    alert(`決済完了！\n付与ポイント: +${points}pt\n駐車割引: ${parking.hours}時間無料`);
+  // 3. マナカ決済フロー
+  function startManacaFlow() {
+    document.getElementById('manaca-step-1').classList.remove('hidden');
+    document.getElementById('manaca-step-2').classList.add('hidden');
+    document.getElementById('modal-manaca').style.display = 'flex';
   }
 
-  // 駐車割引のみ
-  function processParkingOnly() {
-    playSound();
-    const amount = Number(document.getElementById('input-amount').value) || 0;
-    const parkingInput = document.getElementById('input-parking').value;
-    const parking = calcParking(parkingInput, amount);
+  function goToManacaTouch() {
+    const amount = document.getElementById('manaca-amount').value;
+    if (!amount || amount <= 0) {
+      alert('正しいお会計金額を入力してください');
+      return;
+    }
+    document.getElementById('manaca-step-1').classList.add('hidden');
+    document.getElementById('manaca-step-2').classList.remove('hidden');
 
-    document.getElementById('rec-car').innerText = parking.car;
-    document.getElementById('rec-discount').innerText = parking.hours > 0 ? `${parking.hours}時間無料` : 'なし';
-    alert(`車両【${parking.car}】: ${parking.hours}時間無料サービスを適用しました`);
+    // NFCスキャン待機
+    startNFCListener();
   }
 
-  function resetForm() {
-    document.getElementById('input-amount').value = '3500';
-    document.getElementById('input-parking').value = 'Parking_1234';
-    syncAmount();
-  }
-
-  // 取引履歴モーダル開閉
-  function openReceipt() {
-    document.getElementById('receipt-modal').style.display = 'flex';
-  }
-  function closeReceipt() {
-    document.getElementById('receipt-modal').style.display = 'none';
-  }
-
-  // 設定モーダル開閉
-  function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
-  function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-  function saveSettings() {
-    const val = document.getElementById('setting-store-input').value;
-    document.getElementById('store-name-disp').innerText = val;
-    document.getElementById('rec-store').innerText = val;
-    closeSettings();
-  }
-  function logout() { location.reload(); }
-
-  // Android Web NFC
-  async function initNFC() {
+  // Web NFCスキャン
+  async function startNFCListener() {
     if ('NDEFReader' in window) {
       try {
         const ndef = new NDEFReader();
         await ndef.scan();
         ndef.addEventListener("reading", () => {
-          selectedMethod = 'manaca (NFC検知)';
-          processTransaction();
+          onNFCSuccess();
         });
-      } catch(e){}
+      } catch (e) {
+        document.getElementById('nfc-guide-text').innerText = 'NFCが利用できません（画面タップでテスト可）';
+      }
     }
   }
-  window.addEventListener('load', initNFC);
+
+  // タッチ反応成功処理
+  function onNFCSuccess() {
+    playSound(); // 音が鳴る
+    const amount = document.getElementById('manaca-amount').value;
+    closeManacaModal();
+    alert(`【お支払い完了】\nマナカ決済額: ¥${Number(amount).toLocaleString()}`);
+  }
+
+  function simulateNFCSuccess() {
+    onNFCSuccess();
+  }
+
+  function closeManacaModal() {
+    document.getElementById('modal-manaca').style.display = 'none';
+  }
+
+  // 4. 設定 ＆ ログアウト
+  function openSettingsModal() {
+    document.getElementById('modal-settings').style.display = 'flex';
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('modal-settings').style.display = 'none';
+  }
+
+  function saveStoreSettings() {
+    const val = document.getElementById('setting-store-input').value.trim();
+    if(val) {
+      currentStoreName = val;
+      document.getElementById('main-store-disp').innerText = currentStoreName;
+      closeSettingsModal();
+      alert('店舗名を更新しました');
+    }
+  }
+
+  // ログアウト：一番最初の店舗入力画面（ログイン画面）へ戻る
+  function logout() {
+    closeSettingsModal();
+    document.getElementById('screen-main').classList.add('hidden');
+    document.getElementById('screen-login').classList.remove('hidden');
+  }
 </script>
 
 </body>
